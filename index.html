@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Tagesablauf – Karteikarten A1</title>
+<style>
+:root{
+  --dawn1:#FFB38A; --dawn2:#E9788F; --dusk:#5B4B8A; --night:#2F2A5A;
+  --paper:#FFFBF4; --paper2:#FFFFFF; --ink:#2A2440; --muted:#716A84;
+  --sun:#FFC247; --head:#5B4B8A; --head2:#E76F51;
+  --ok:#2E8B57; --no:#D0394F; --der:#2563A8; --die:#C2334C; --das:#2E8B57;
+}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:#fff;
+  background:linear-gradient(180deg,var(--dawn1) 0%,var(--dawn2) 38%,var(--dusk) 75%,var(--night) 100%);background-color:var(--dusk);
+  overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button{font:inherit;cursor:pointer;border:0}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.screen.active{display:flex}
+
+/* START */
+#start{gap:16px;text-align:center;overflow-y:auto;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top,0px) + 26px)}
+.clock{width:74px;height:74px;border-radius:50%;background:var(--paper);position:relative;flex:none;box-shadow:0 0 0 6px rgba(255,255,255,.3)}
+.clock::before{content:"";position:absolute;left:50%;top:14px;width:4px;height:24px;margin-left:-2px;background:var(--ink);border-radius:2px;transform-origin:50% 23px;transform:rotate(0deg)}
+.clock::after{content:"";position:absolute;left:50%;top:22px;width:4px;height:16px;margin-left:-2px;background:var(--head2);border-radius:2px;transform-origin:50% 15px;transform:rotate(210deg)}
+.title{font-family:Georgia,"Times New Roman",serif;font-size:clamp(40px,12vw,60px);line-height:1;margin:6px 0 0;text-shadow:0 2px 12px rgba(0,0,0,.15)}
+.sub{margin:0;font-size:14.5px;opacity:.95;line-height:1.5;max-width:340px}
+.modes{display:flex;flex-direction:column;gap:12px;width:min(100%,390px)}
+.mode{background:var(--paper);color:var(--ink);border-radius:14px;padding:14px 18px 14px 20px;text-align:left;position:relative;
+  box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .12s;overflow:hidden}
+.mode .ic{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:26px}
+.mode:active{transform:translateY(3px)}
+.mode b{display:block;font-size:18px;padding-right:44px}
+.mode span{font-size:13.5px;color:var(--muted);display:block;padding-right:44px}
+.mode .pn{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:var(--head);border-radius:8px;padding:1px 8px;margin-bottom:4px}
+.mode.quizmode{background:#DDEFCB}
+.mode.quizmode .pn{background:#5E9A3A}
+.sect{font-size:14px;margin:4px 0 -4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:min(100%,420px)}
+.chip{background:rgba(255,255,255,.16);color:#fff;border:1.5px solid rgba(255,255,255,.45);border-radius:18px;padding:7px 12px;font-size:13.5px}
+.chip.on{background:var(--sun);border-color:var(--sun);color:var(--ink);font-weight:700}
+.opts{display:flex;align-items:center;gap:10px;font-size:15px}
+.opts input{width:22px;height:22px;accent-color:var(--sun)}
+
+/* GAME */
+.topbar{width:min(100%,440px);display:flex;align-items:center;gap:12px}
+.iconbtn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:18px;flex:none}
+.route{flex:1;position:relative}
+.line{height:4px;border-radius:2px;position:relative;top:10px;background:linear-gradient(90deg,#FFE3A3,#FFB38A,#E9788F,#5B4B8A)}
+.sunpos{position:absolute;top:-2px;left:0;font-size:20px;transform:translateX(-50%);transition:left .35s}
+.stats{display:flex;justify-content:space-between;font-size:13px;margin-top:22px;font-variant-numeric:tabular-nums}
+.stats .k{color:#C9F5D8;font-weight:700}.stats .u{color:#FFD0D6;font-weight:700}
+
+.stage{flex:1;width:100%;display:flex;align-items:center;justify-content:center;perspective:1300px;min-height:0;padding:10px 0 16px}
+.hang{position:relative;width:min(92vw,400px);height:min(62vh,500px)}
+.card{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.3,.7,.3,1);cursor:pointer;touch-action:pan-y}
+.card.flipped{transform:rotateY(180deg)}
+.card.noanim{transition:none}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--paper);color:var(--ink);border-radius:18px;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 14px 30px rgba(0,0,0,.28)}
+.face.back{transform:rotateY(180deg);background:var(--paper2)}
+.stub{flex:none;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--head);color:#fff;font-size:13px;position:relative}
+.back .stub{background:var(--head2)}
+.stub b{font-size:14px;letter-spacing:.3px}
+/* spiral-bound planner holes */
+.stub::after{content:"";position:absolute;left:18px;right:18px;bottom:-7px;height:14px;
+  background:radial-gradient(circle,rgba(0,0,0,.22) 3.5px,transparent 4.5px) 0 50%/22px 14px repeat-x}
+.body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 22px 40px;overflow-y:auto;min-height:0;
+  background:repeating-linear-gradient(180deg,transparent 0 31px,rgba(91,75,138,.08) 31px 32px)}
+.cat{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.word{font-weight:700;line-height:1.25;word-break:break-word;hyphens:auto}
+.pl{font-size:15px;color:var(--muted);margin-top:6px}
+.vi{font-weight:600;line-height:1.4}
+.ex{font-family:Georgia,serif;font-style:italic;font-size:16px;line-height:1.5;color:#3E3656;margin-top:14px;max-width:32ch}
+.small{font-size:14.5px;color:var(--muted);line-height:1.4;margin-bottom:10px}
+.art-der{color:var(--der)}.art-die{color:var(--die)}.art-das{color:var(--das)}
+.hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12.5px;color:var(--muted)}
+.speak{display:flex;gap:10px;margin-top:16px;justify-content:center;flex-wrap:wrap}
+.speak button{height:44px;min-width:44px;padding:0 12px;border-radius:22px;background:var(--head);color:#fff;font-size:18px;box-shadow:0 3px 0 #3a2f5e}
+.speak button:active{transform:translateY(2px);box-shadow:0 1px 0 #3a2f5e}
+.speak button.txt{font-size:14px}
+
+.stamp{position:absolute;top:42%;left:50%;font-weight:800;font-size:28px;padding:6px 16px;border:4px solid;border-radius:12px;
+  transform:translate(-50%,-50%) rotate(-12deg) scale(.6);opacity:0;pointer-events:none;z-index:5;background:rgba(255,255,255,.92);transition:all .18s}
+.stamp.ok{color:var(--ok);border-color:var(--ok)}.stamp.no{color:var(--no);border-color:var(--no)}
+.stamp.show{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}
+.stamp.no.show{transform:translate(-50%,-50%) rotate(12deg) scale(1)}
+
+.controls{width:min(100%,440px);display:flex;gap:12px;min-height:62px}
+.big{flex:1;border-radius:16px;padding:12px 8px;font-size:17px;font-weight:700;color:#fff;line-height:1.15}
+.big small{display:block;font-weight:500;font-size:12.5px;opacity:.9;margin-top:2px}
+.big:active{transform:translateY(3px)}
+.flipbtn{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 #b8861a}
+.nobtn{background:var(--no);box-shadow:0 5px 0 #8f1f31}
+.okbtn{background:var(--ok);box-shadow:0 5px 0 #1c5a37}
+.ghost{background:rgba(255,255,255,.2);box-shadow:none}
+
+/* END */
+#end{justify-content:center;gap:18px;text-align:center}
+.result{background:var(--paper);color:var(--ink);width:min(100%,360px);border-radius:18px;overflow:hidden}
+.result .stub{justify-content:center}
+.result .rb{padding:22px}
+.result h2{font-family:Georgia,serif;font-size:32px;margin:0 0 6px}
+.result p{margin:4px 0;font-size:16px}
+.score{font-size:52px;font-weight:800;color:var(--ok);margin:6px 0}
+.endbtns{display:flex;flex-direction:column;gap:12px;width:min(100%,360px)}
+.endbtns .big{flex:none}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+@media (max-height:640px){.hang{height:min(58vh,440px)}}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+
+/* QUIZ – nền xanh cốm */
+#quiz{background:#CFE8B8;color:#23391C;overflow-y:auto;justify-content:flex-start}
+#quiz .iconbtn{background:rgba(35,57,28,.12);color:#23391C}
+.qtop{width:min(100%,460px);display:flex;align-items:center;gap:12px;flex:none}
+.qprog{flex:1}
+.qbar{height:8px;border-radius:4px;background:rgba(35,57,28,.14);overflow:hidden}
+.qfill{height:100%;width:0;background:#5E9A3A;border-radius:4px;transition:width .35s}
+.qstat{display:flex;justify-content:space-between;font-size:13.5px;margin-top:6px;color:#3E5A33;font-variant-numeric:tabular-nums}
+.qcard{width:min(100%,460px);background:#F6FBF0;border-radius:18px;padding:20px 18px 18px;margin-top:16px;box-shadow:0 8px 20px rgba(35,57,28,.15);flex:none}
+.qnum{font-size:13px;color:#5B7A4C;margin-bottom:8px}
+.qtext{font-size:20px;font-weight:700;line-height:1.35;margin:0 0 16px}
+.qopts{display:flex;flex-direction:column;gap:10px}
+.qopt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:#fff;color:#23391C;border:2px solid #CFE3BE;border-radius:14px;padding:12px 14px;font-size:16px;line-height:1.4;transition:background .15s,border-color .15s}
+.qopt .l{flex:none;width:28px;height:28px;border-radius:50%;background:#E4F1D7;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.qopt:active{transform:scale(.99)}
+.qopt.right{background:#DDF3D6;border-color:#2E8B57}
+.qopt.right .l{background:#2E8B57;color:#fff}
+.qopt.wrong{background:#FBE1E4;border-color:#D0394F}
+.qopt.wrong .l{background:#D0394F;color:#fff}
+.qopt[disabled]{cursor:default}
+.qopt.dim{opacity:.55}
+.qexp{margin-top:14px;border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.5;display:none}
+.qexp.show{display:block}
+.qexp.ok{background:#E3F4DA;border-left:5px solid #2E8B57}
+.qexp.bad{background:#FCEBEC;border-left:5px solid #D0394F}
+.qexp b{display:block;margin-bottom:3px}
+.qnext{width:min(100%,460px);margin-top:16px;flex:none;background:#5E9A3A;box-shadow:0 5px 0 #3C6824;visibility:hidden}
+.qnext.show{visibility:visible}
+.qres{width:min(100%,460px);text-align:center;margin-top:16px}
+.qres h2{font-family:Georgia,serif;font-size:32px;margin:6px 0}
+.qres .score{color:#3C7A22}
+.qreview{text-align:left;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.qreview div{background:#F6FBF0;border-radius:12px;padding:10px 12px;font-size:14.5px;line-height:1.45}
+.qreview .x{border-left:5px solid #D0394F}.qreview .v{border-left:5px solid #2E8B57}
+.qbtns{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.qbtns .big{flex:none}
+.qghost{background:rgba(35,57,28,.12);color:#23391C;box-shadow:none}
+</style>
+</head>
+<body>
+
+<section id="start" class="screen active">
+  <div class="clock" aria-hidden="true"></div>
+  <h1 class="title">Tagesablauf</h1>
+  <p class="sub">Từ vựng A1 chủ đề Sinh hoạt hàng ngày. Đầy đủ giống, số nhiều &amp; ví dụ thuần Đức.</p>
+  <div class="modes">
+    <button class="mode" data-mode="de"><i class="pn">Teil 1</i><b>🇩🇪 Deutsch → Tiếng Việt</b><span>Xem tiếng Đức, đoán nghĩa tiếng Việt</span><i class="ic">☀️</i></button>
+    <button class="mode" data-mode="vi"><i class="pn">Teil 2</i><b>🇻🇳 Tiếng Việt → Deutsch</b><span>Xem tiếng Việt, đoán từ tiếng Đức</span><i class="ic">🌙</i></button>
+    <button class="mode quizmode" id="openQuiz"><i class="pn">Teil 3</i><b>✅ Multiple Choice</b><span>12 câu hỏi trắc nghiệm về Anna &amp; Ben</span><i class="ic">📝</i></button>
+  </div>
+  <p class="sect">Chọn nhóm từ cho Teil 1 &amp; 2:</p>
+  <div class="chips" id="chips"></div>
+  <label class="opts"><input type="checkbox" id="shuffle" checked> Karten mischen (xáo trộn thẻ)</label>
+</section>
+
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="iconbtn" id="home" aria-label="Zum Menü">✕</button>
+    <div class="route">
+      <div class="line"></div><div class="sunpos" id="sunpos">☀️</div>
+      <div class="stats"><span id="count">1 / 81</span><span><span class="k" id="kn">✓ 0</span>&nbsp;&nbsp;<span class="u" id="un">✗ 0</span></span></div>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="hang">
+      <div class="card" id="card">
+        <div class="face front"><div class="stub"><b id="fSide"></b><span id="fNr"></span></div><div class="body" id="fBody"></div><div class="hint">Chạm để lật</div></div>
+        <div class="face back"><div class="stub"><b id="bSide"></b><span id="bNr"></span></div><div class="body" id="bBody"></div></div>
+      </div>
+      <div class="stamp ok" id="stOk">Gewusst!</div>
+      <div class="stamp no" id="stNo">Noch nicht</div>
+    </div>
+  </div>
+  <div class="controls" id="controls"></div>
+</section>
+
+<section id="end" class="screen">
+  <div class="result">
+    <div class="stub"><b>🌙 Gute Nacht!</b></div>
+    <div class="rb"><h2 id="endTitle">Super!</h2><div class="score" id="endScore">0 / 0</div><p id="endText"></p></div>
+  </div>
+  <div class="endbtns" id="endBtns"></div>
+</section>
+
+<section id="quiz" class="screen">
+  <div class="qtop">
+    <button class="iconbtn" id="qHome" aria-label="Zum Menü">✕</button>
+    <div class="qprog"><div class="qbar"><div class="qfill" id="qFill"></div></div>
+      <div class="qstat"><span id="qCount">Frage 1 / 12</span><span id="qScore">Richtig: 0</span></div></div>
+  </div>
+  <div id="qMain">
+    <div class="qcard">
+      <div class="qnum">Multiple Choice · Câu hỏi trắc nghiệm A1</div>
+      <p class="qtext" id="qText"></p>
+      <div class="qopts" id="qOpts"></div>
+      <div class="qexp" id="qExp"></div>
+    </div>
+    <button class="big qnext" id="qNext">Weiter<small>Câu tiếp theo</small></button>
+  </div>
+  <div class="qres" id="qRes" style="display:none"></div>
+</section>
+
+<canvas id="confetti"></canvas>
+
+<script>
+/* ===== DATA: "Wortschatz A1: Tagesablauf" ===== */
+const CATS=[
+ ["Nomen","Danh từ & Quán từ / Số nhiều"],
+ ["Verben","Động từ sinh hoạt hàng ngày"],
+ ["Adverbien der Häufigkeit","Trạng từ chỉ tần suất"]
+];
+/* [Kategorie, Wort, Plural, Nghĩa, Beispiel]  — Plural: "¨-er" = Umlaut + -er */
+const CARDS=[
+ [0,"der Morgen","-","buổi sáng","Am Morgen trinke ich eine Tasse Kaffee."],
+ [0,"der Mittag","-e","buổi trưa","Am Mittag esse ich in der Kantine."],
+ [0,"der Abend","-e","buổi tối","Am Abend sehe ich gern fern."],
+ [0,"das Bad","¨-er","phòng tắm","Ich gehe am Morgen ins Bad."],
+ [0,"der Zahn","¨-e","răng","Ich putze mir zweimal am Tag die Zähne."],
+ [0,"das Frühstück","-e","bữa sáng","Das Frühstück ist sehr lecker."],
+ [0,"das Brötchen","-","bánh mì tròn","Ich esse morgens ein Brötchen mit Käse."],
+ [0,"der Käse","-","phô mai","Der Käse schmeckt sehr gut."],
+ [0,"das Müsli","-s","ngũ cốc","Zum Frühstück esse ich Müsli mit Milch."],
+ [0,"der Kaffee","-s","cà phê","Trinkst du morgens Kaffee oder Tee?"],
+ [0,"die Milch","kein Pl.","sữa","Die Kinder trinken frische Milch."],
+ [0,"der Zucker","kein Pl.","đường","Nimmst du Zucker in den Kaffee?"],
+ [0,"der Tee","-s","trà","Ich trinke abends einen heißen Tee."],
+ [0,"die Arbeit","-en","công việc","Meine Arbeit beginnt um acht Uhr."],
+ [0,"die U-Bahn","-en","tàu điện ngầm","Ich fahre mit der U-Bahn zur Arbeit."],
+ [0,"das Fahrrad","¨-er","xe đạp","Im Sommer fahre ich oft mit dem Fahrrad."],
+ [0,"der Winter","-","mùa đông","Im Winter ist es sehr kalt."],
+ [0,"der Bus","-se","xe buýt","Der Bus kommt um sieben Uhr."],
+ [0,"der Podcast","-s","podcast","Ich höre beim Kochen einen Podcast."],
+ [0,"die Gewohnheit","-en","thói quen","Frühstücken ist eine gute Gewohnheit."],
+ [0,"das Büro","-s","văn phòng","Mein Büro liegt im Stadtzentrum."],
+ [0,"die E-Mail","-s","thư điện tử","Ich schreibe viele E-Mails im Büro."],
+ [0,"die Kantine","-n","nhà ăn","Wir essen mittags zusammen in der Kantine."],
+ [0,"der Kollege","-n","đồng nghiệp","Mein Kollege ist sehr freundlich."],
+ [0,"die Nudeln","Pl.","mì","Heute koche ich Nudeln mit Tomatensoße."],
+ [0,"der Salat","-e","món salad","Zum Mittagessen esse ich einen frischen Salat."],
+ [0,"die Suppe","-n","món súp","Die Suppe ist heiß und lecker."],
+ [0,"der Fisch","-e","cá","Am Freitag essen wir oft Fisch."],
+ [0,"die Schule","-n","trường học","Die Kinder gehen morgens zur Schule."],
+ [0,"das Brot","-e","bánh mì","Abends essen wir oft Brot mit Wurst."],
+ [0,"die Pause","-n","giờ giải lao","Um zwölf Uhr machen wir eine Pause."],
+ [0,"das Handy","-s","điện thoại di động","Mein Handy klingelt auf dem Tisch."],
+ [0,"die Hausaufgaben","Pl.","bài tập về nhà","Die Schüler machen ihre Hausaufgaben."],
+ [0,"das Hobby","-s","sở thích","Mein Hobby ist Musik hören."],
+ [0,"das Gemüse","kein Pl.","rau củ","Frisches Gemüse ist gesund."],
+ [0,"das Abendbrot","kein Pl.","bữa tối truyền thống","Das Abendbrot gibt es um sieben Uhr."],
+ [0,"die Wurst","¨-e","xúc xích","Er isst gern Brot mit Wurst."],
+ [0,"die Tomate","-n","cà chua","Die Tomate ist rot und frisch."],
+ [0,"das Buch","¨-er","sách","Vor dem Schlafen lese ich ein Buch."],
+ [0,"die Mutter","¨-","mẹ","Meine Mutter kocht das Abendessen."],
+ [0,"die Gitarre","-n","đàn guitar","Er spielt am Abend Gitarre."],
+ [0,"das Bett","-en","giường","Um zehn Uhr gehe ich ins Bett."],
+ [0,"die Oma","-s","bà","Meine Oma wohnt auf dem Land."],
+ [0,"das Wochenende","-n","cuối tuần","Am Wochenende schlafe ich lange."],
+ [0,"der Markt","¨-e","chợ","Am Samstag kaufe ich Obst auf dem Markt."],
+ [0,"das Obst","kein Pl.","hoa quả / trái cây","Ich esse jeden Tag frisches Obst."],
+ [0,"der Freund","-e","bạn bè / bạn nam","Am Nachmittag treffe ich einen Freund."],
+ [0,"das Café","-s","quán cà phê","Wir trinken einen Kaffee im Café."],
+ [0,"die Familie","-n","gia đình","Am Sonntag frühstücke ich mit der Familie."],
+ [0,"der Kuchen","-","bánh ngọt","Meine Oma backt einen leckeren Kuchen."],
+ [0,"das Geschäft","-e","cửa hàng","Das Geschäft öffnet um neun Uhr."],
+ [0,"die Schokolade","-n","socola","Ich esse gern Schokolade zum Nachtisch."],
+ [1,"aufstehen","","thức dậy","Ich stehe jeden Morgen um sechs Uhr auf."],
+ [1,"duschen","","tắm vòi hoa sen","Nach dem Aufstehen dusche ich warm."],
+ [1,"putzen","","đánh răng / lau dọn","Ich putze mir zweimal am Tag die Zähne."],
+ [1,"sich anziehen","","mặc quần áo","Ich ziehe mich schnell an."],
+ [1,"frühstücken","","ăn sáng","Wir frühstücken zusammen um sieben Uhr."],
+ [1,"trinken","","uống","Er trinkt jeden Morgen ein Glas Wasser."],
+ [1,"fahren","","đi bằng xe","Ich fahre mit dem Bus zur Arbeit."],
+ [1,"dauern","","kéo dài","Die Fahrt zur Arbeit dauert dreißig Minuten."],
+ [1,"regnen","","mưa","Es regnet heute den ganzen Tag."],
+ [1,"nehmen","","lấy / đi xe","Ich nehme morgens die U-Bahn."],
+ [1,"hören","","nghe","Unterwegs höre ich gerne Musik."],
+ [1,"anfangen","","bắt đầu","Der Unterricht fängt um acht Uhr an."],
+ [1,"arbeiten","","làm việc","Ich arbeite von Montag bis Freitag."],
+ [1,"lesen","","đọc","Abends liest sie ein interessantes Buch."],
+ [1,"spazieren gehen","","đi dạo","Am Nachmittag gehe ich im Park spazieren."],
+ [1,"korrigieren","","chữa bài / sửa lỗi","Der Lehrer korrigiert die Hausaufgaben."],
+ [1,"einkaufen","","đi chợ / mua sắm","Am Samstag kaufe ich im Supermarkt ein."],
+ [1,"kochen","","nấu ăn","Am Abend koche ich eine warme Suppe."],
+ [1,"telefonieren","","gọi điện thoại","Ich telefoniere oft mit meiner Mutter."],
+ [1,"fernsehen","","xem tivi","Nach dem Essen sehe ich eine Stunde fern."],
+ [1,"spielen","","chơi","Die Kinder spielen im Garten."],
+ [1,"schlafen","","ngủ","Ich schlafe jeden Abend um zweiundzwanzig Uhr."],
+ [1,"besuchen","","thăm","Am Wochenende besuche ich meine Oma."],
+ [1,"lernen","","học","Ich lerne jeden Tag Deutsch."],
+ [2,"immer","","luôn luôn","Ich stehe immer um sechs Uhr auf."],
+ [2,"meistens","","hầu như / thường xuyên","Zum Frühstück trinke ich meistens Kaffee."],
+ [2,"oft","","thường","Ich gehe oft im Park spazieren."],
+ [2,"manchmal","","thỉnh thoảng","Manchmal fahre ich mit dem Fahrrad zur Arbeit."],
+ [2,"nie","","không bao giờ","Trinkst du nie Tee am Abend?"]
+];
+
+/* ===== TEIL 3: Multiple Choice — [Frage, [A,B,C], richtig (0-2), Giải thích] ===== */
+const QUIZ=[
+ ["Wann steht Ben meistens auf?",["Um 6 Uhr","Um 7 Uhr","Um 8 Uhr"],1,"Ben thường thức dậy lúc 7 giờ; Anna thức dậy lúc 6 giờ."],
+ ["Wann duscht Ben?",["Am Morgen","Am Mittag","Am Abend"],2,"Ben luôn tắm vào buổi tối; Anna tắm vào buổi sáng."],
+ ["Was isst Anna oft zum Frühstück?",["Ein Brötchen mit Käse","Nur Müsli","Obst und Gemüse"],0,"Anna thường ăn bánh mì tròn với pho mát."],
+ ["Was trinkt Ben morgens?",["Tee mit Zucker","Kaffee mit Milch (ohne Zucker)","Nur Orangensaft"],1,"Ben uống cà phê có sữa nhưng không cho đường và không bao giờ uống trà."],
+ ["Wie fährt Ben meistens zur Arbeit?",["Mit dem Fahrrad","Mit der U-Bahn","Mit dem Bus"],1,"Ben chủ yếu đi làm bằng tàu điện ngầm U-Bahn."],
+ ["Wie fährt Anna zur Arbeit, wenn es regnet?",["Sie nimmt den Bus","Sie fährt mit dem Fahrrad","Sie geht zu Fuß"],0,"Bình thường Anna đi xe đạp, nhưng khi trời mưa cô ấy đi xe buýt."],
+ ["Was ist Annas Beruf und um wie viel Uhr fängt sie an?",["Büroangestellte / 9 Uhr","Lehrerin / 8 Uhr","Verkäuferin / 7 Uhr"],1,"Anna làm giáo viên và bắt đầu giờ dạy lúc 8 giờ."],
+ ["Was macht Ben zuerst im Büro?",["Er liest seine E-Mails","Er trinkt sofort einen Kaffee","Er telefoniert mit Kunden"],0,"Công việc đầu tiên của Ben ở văn phòng là đọc E-Mail."],
+ ["Was macht Anna am Mittag nach dem Essen?",["Sie schläft 15 Minuten","Sie geht 10 Minuten spazieren","Sie sitzt nur am Handy"],1,"Anna đi dạo 10 phút sau bữa ăn trưa."],
+ ["Was kocht Anna am Abend oft?",["Suppe","Nudeln mit Tomatensoße","Fisch mit Reis"],1,"Anna thích nấu ăn và thường nấu mì Ý sốt cà chua."],
+ ["Wann geht Anna abends ins Bett?",["Um 22 Uhr (10 Uhr)","Um Mitternacht","Um 23 Uhr"],0,"Anna luôn đi ngủ lúc 22 giờ."],
+ ["Was macht Ben am Sonntag?",["Er geht auf den Markt","Er besucht seine Familie und sie essen Kuchen","Er geht im Supermarkt einkaufen"],1,"Vào Chủ nhật, Ben thăm gia đình và cùng ăn bánh ngọt."]
+];
+
+let mode="de",deck=[],pos=0,known=[],unknown=[],flipped=false,busy=false;
+const sel=new Set(CATS.map((_,i)=>i));
+const $=id=>document.getElementById(id),card=$("card");
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtDe=s=>esc(s).replace(/\b(der|die|das)(?=\s+[A-ZÄÖÜ])/g,m=>`<span class="art-${m}">${m}</span>`);
+const sizeW=s=>{const n=s.length;return n>20?"28px":n>13?"33px":"40px"};
+const sizeV=s=>{const n=s.length;return n>20?"26px":n>12?"30px":"34px"};
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id))}
+function plText(c){
+  if(!c[2])return "";
+  if(c[2]==="kein Pl.")return "kein Plural";
+  if(c[2]==="Pl.")return "nur Plural";
+  return "Pl.: "+c[2];
+}
+
+/* chips */
+function drawChips(){
+  const all=sel.size===CATS.length;
+  const cnt=i=>CARDS.filter(c=>c[0]===i).length;
+  $("chips").innerHTML=`<button class="chip ${all?"on":""}" data-c="all">Alle (${CARDS.length})</button>`+
+    CATS.map((c,i)=>`<button class="chip ${!all&&sel.has(i)?"on":""}" data-c="${i}">${esc(c[0])} (${cnt(i)})</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    const c=b.dataset.c;
+    if(c==="all"){CATS.forEach((_,i)=>sel.add(i))}
+    else{const i=+c;if(sel.size===CATS.length){sel.clear();sel.add(i)}else if(sel.has(i)){sel.delete(i);if(!sel.size)CATS.forEach((_,j)=>sel.add(j))}else sel.add(i)}
+    drawChips()});
+}
+drawChips();
+
+/* TTS */
+let deVoice=null;
+function pickVoice(){const v=speechSynthesis.getVoices();
+  deVoice=v.find(x=>/^de[-_]DE/i.test(x.lang)&&/google|anna|helena|katja|premium|enhanced/i.test(x.name))||v.find(x=>/^de/i.test(x.lang))||null}
+if("speechSynthesis" in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function speak(text,rate){
+  if(!("speechSynthesis" in window))return;speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang="de-DE";u.rate=rate;if(deVoice)u.voice=deVoice;speechSynthesis.speak(u);
+}
+function speakBtns(){return `<div class="speak"><button data-say="w" data-rate="0.9" aria-label="Wort anhören">🔊</button><button data-say="w" data-rate="0.5" aria-label="Langsam anhören">🐢</button><button class="txt" data-say="s" data-rate="0.9">🔊 Beispiel</button></div>`}
+function wireSpeak(root){root.querySelectorAll("[data-say]").forEach(b=>{
+  b.addEventListener("pointerdown",e=>e.stopPropagation());
+  b.addEventListener("click",e=>{e.stopPropagation();const c=CARDS[deck[pos]];speak(b.dataset.say==="w"?c[1]:c[4],parseFloat(b.dataset.rate))})});}
+
+/* FLOW */
+function start(m,indices){
+  mode=m;
+  deck=indices?indices.slice():CARDS.map((c,i)=>sel.has(c[0])?i:-1).filter(i=>i>=0);
+  if($("shuffle").checked)for(let i=deck.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[deck[i],deck[j]]=[deck[j],deck[i]]}
+  pos=0;known=[];unknown=[];flipped=false;show("game");render();
+}
+function deBlock(c){
+  const pl=plText(c);
+  return `<div class="word" style="font-size:${sizeW(c[1])}">${fmtDe(c[1])}</div>`+
+    (pl?`<div class="pl">${esc(pl)}</div>`:"")+`<div class="ex">„${esc(c[4])}“</div>`+speakBtns();
+}
+function render(){
+  const i=deck[pos],c=CARDS[i],de=mode==="de",f=$("fBody"),b=$("bBody");
+  const catTxt=`<div class="cat">${esc(CATS[c[0]][0])} · ${esc(CATS[c[0]][1])}</div>`;
+  $("fSide").textContent=de?"DEUTSCH":"TIẾNG VIỆT";$("bSide").textContent=de?"TIẾNG VIỆT":"DEUTSCH";
+  $("fNr").textContent=$("bNr").textContent="Nr. "+String(i+1).padStart(2,"0");
+  const viHtml=`<div class="vi" style="font-size:${sizeV(c[3])}">${esc(c[3])}</div>`;
+  if(de){f.innerHTML=catTxt+deBlock(c);
+    b.innerHTML=`<div class="small">${fmtDe(c[1])}</div>`+viHtml+`<div class="ex" style="font-size:14.5px">„${esc(c[4])}“</div>`+speakBtns();}
+  else{f.innerHTML=catTxt+viHtml;b.innerHTML=deBlock(c);}
+  wireSpeak(f);wireSpeak(b);
+  $("count").textContent=(pos+1)+" / "+deck.length;
+  $("kn").textContent="✓ "+known.length;$("un").textContent="✗ "+unknown.length;
+  const p=pos/deck.length;$("sunpos").style.left=(p*100)+"%";$("sunpos").textContent=p<.5?"☀️":p<.8?"🌇":"🌙";
+  setControls();
+}
+function setControls(){const c=$("controls");
+  if(!flipped){c.innerHTML=`<button class="big flipbtn" id="bFlip">Umdrehen<small>Lật thẻ</small></button>`;$("bFlip").onclick=flip}
+  else{c.innerHTML=`<button class="big nobtn" id="bNo">✗ Noch nicht<small>Chưa thuộc</small></button><button class="big okbtn" id="bOk">✓ Gewusst<small>Đã thuộc</small></button>`;
+    $("bNo").onclick=()=>judge(false);$("bOk").onclick=()=>judge(true)}}
+function flip(){if(busy)return;flipped=!flipped;card.classList.toggle("flipped",flipped);setControls()}
+function judge(ok){
+  if(busy||!flipped)return;busy=true;(ok?known:unknown).push(deck[pos]);
+  const st=ok?$("stOk"):$("stNo");st.classList.add("show");
+  card.style.transition="transform .38s ease-in";
+  card.style.transform=`translateX(${ok?120:-120}vw) rotate(${ok?18:-18}deg) rotateY(180deg)`;
+  setTimeout(()=>{st.classList.remove("show");pos++;
+    if(pos>=deck.length){busy=false;resetCard();finish();return}
+    resetCard();render();
+    card.animate&&card.animate([{transform:"translateY(-30px)",opacity:0},{transform:"none",opacity:1}],{duration:280,easing:"ease-out"});
+    busy=false},380);
+}
+function resetCard(){card.classList.add("noanim");card.style.transition="";card.style.transform="";flipped=false;card.classList.remove("flipped");void card.offsetWidth;card.classList.remove("noanim")}
+function finish(){
+  const k=known.length,t=deck.length;$("endScore").textContent=k+" / "+t;
+  $("endTitle").textContent=k===t?"Perfekt!":k>=t*.7?"Super!":"Weiter so!";
+  $("endText").textContent=unknown.length?`Còn ${unknown.length} thẻ chưa thuộc. Ôn lại nhé!`:"Bạn đã thuộc tất cả các thẻ! 🎉";
+  const u=unknown.slice();
+  $("endBtns").innerHTML=(u.length?`<button class="big nobtn" id="eU">Schwierige Karten wiederholen (${u.length})<small>Ôn lại thẻ chưa thuộc</small></button>`:"")+
+    `<button class="big okbtn" id="eA">Alle Karten nochmal<small>Chơi lại tất cả</small></button><button class="big ghost" id="eM">Zum Menü<small>Chọn lại chế độ</small></button>`;
+  if(u.length)$("eU").onclick=()=>start(mode,u);
+  $("eA").onclick=()=>start(mode);$("eM").onclick=()=>show("start");
+  show("end");if(k>=t*.5)confetti();
+}
+
+/* INPUT */
+document.querySelectorAll(".mode[data-mode]").forEach(b=>b.onclick=()=>start(b.dataset.mode));
+$("home").onclick=()=>{window.speechSynthesis&&speechSynthesis.cancel();resetCard();show("start")};
+let sx=0,sy=0,drag=false,dx=0;
+const clearStamps=()=>{$("stOk").classList.remove("show");$("stNo").classList.remove("show")};
+card.addEventListener("pointerdown",e=>{if(busy)return;drag=true;sx=e.clientX;sy=e.clientY;dx=0});
+card.addEventListener("pointermove",e=>{if(!drag||!flipped)return;dx=e.clientX-sx;if(Math.abs(dx)<8)return;
+  card.style.transition="none";card.style.transform=`translateX(${dx}px) rotate(${dx/20}deg) rotateY(180deg)`;
+  $("stOk").classList.toggle("show",dx>60);$("stNo").classList.toggle("show",dx<-60)});
+card.addEventListener("pointerup",e=>{if(!drag)return;drag=false;
+  const moved=Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy);
+  if(flipped&&Math.abs(dx)>90){clearStamps();judge(dx>0);return}
+  if(flipped&&Math.abs(dx)>=8){card.style.transition="transform .25s";card.style.transform="";clearStamps();setTimeout(()=>card.style.transition="",260);return}
+  if(moved<12)flip()});
+card.addEventListener("pointercancel",()=>{drag=false;card.style.transform="";clearStamps()});
+document.addEventListener("keydown",e=>{if(!$("game").classList.contains("active"))return;
+  if(e.key===" "||e.key==="Enter"){e.preventDefault();flip()}else if(e.key==="ArrowRight")judge(true);else if(e.key==="ArrowLeft")judge(false)});
+document.addEventListener("gesturestart",e=>e.preventDefault());
+
+/* QUIZ */
+const L=["A","B","C"];
+let qi=0,qRight=0,qAns=[];
+function openQuiz(){qi=0;qRight=0;qAns=[];$("qRes").style.display="none";$("qMain").style.display="block";show("quiz");drawQ()}
+function drawQ(){
+  const q=QUIZ[qi];
+  $("qCount").textContent=`Frage ${qi+1} / ${QUIZ.length}`;$("qScore").textContent="Richtig: "+qRight;
+  $("qFill").style.width=(qi/QUIZ.length*100)+"%";
+  $("qText").textContent=(qi+1)+". "+q[0];
+  $("qOpts").innerHTML=q[1].map((o,j)=>`<button class="qopt" data-j="${j}"><span class="l">${L[j]}</span><span>${esc(o)}</span></button>`).join("");
+  $("qExp").className="qexp";$("qExp").innerHTML="";$("qNext").classList.remove("show");
+  $("qNext").innerHTML=qi===QUIZ.length-1?"Ergebnis ansehen<small>Xem kết quả</small>":"Weiter<small>Câu tiếp theo</small>";
+  $("qOpts").querySelectorAll(".qopt").forEach(b=>b.onclick=()=>answer(+b.dataset.j));
+  $("quiz").scrollTop=0;
+}
+function answer(j){
+  const q=QUIZ[qi],ok=j===q[2];if(ok)qRight++;qAns.push(j);
+  $("qOpts").querySelectorAll(".qopt").forEach((b,k)=>{b.disabled=true;
+    if(k===q[2])b.classList.add("right");else if(k===j)b.classList.add("wrong");else b.classList.add("dim")});
+  const e=$("qExp");e.className="qexp show "+(ok?"ok":"bad");
+  e.innerHTML=`<b>${ok?"✓ Richtig! Chính xác!":"✗ Leider falsch. Đáp án đúng: "+L[q[2]]}</b>${L[q[2]]}. ${esc(q[1][q[2]])} — ${esc(q[3])}`;
+  $("qScore").textContent="Richtig: "+qRight;$("qNext").classList.add("show");
+  setTimeout(()=>e.scrollIntoView({behavior:"smooth",block:"nearest"}),50);
+}
+$("qNext").onclick=()=>{qi++;if(qi<QUIZ.length)drawQ();else qFinish()};
+function qFinish(){
+  $("qFill").style.width="100%";$("qMain").style.display="none";
+  const r=$("qRes");r.style.display="block";
+  const t=QUIZ.length;
+  r.innerHTML=`<div class="qcard" style="margin-top:0"><h2>${qRight===t?"Perfekt!":qRight>=t*.7?"Super!":"Weiter so!"}</h2>
+    <div class="score">${qRight} / ${t}</div><p>${qRight===t?"Bạn trả lời đúng tất cả các câu! 🎉":"Xem lại những câu sai bên dưới nhé."}</p></div>
+    <div class="qreview">${QUIZ.map((q,i)=>{const ok=qAns[i]===q[2];
+      return `<div class="${ok?"v":"x"}"><b>${i+1}. ${esc(q[0])}</b><br>${ok?"✓ ":"✗ Bạn chọn: "+L[qAns[i]]+" · "}Đáp án: ${L[q[2]]}. ${esc(q[1][q[2]])}</div>`}).join("")}</div>
+    <div class="qbtns"><button class="big" style="background:#5E9A3A;box-shadow:0 5px 0 #3C6824" id="qAgain">Quiz nochmal<small>Làm lại bài trắc nghiệm</small></button>
+    <button class="big qghost" id="qMenu">Zum Menü<small>Về màn hình chính</small></button></div>`;
+  $("qAgain").onclick=openQuiz;$("qMenu").onclick=()=>show("start");
+  $("quiz").scrollTop=0;if(qRight>=t*.5)confetti();
+}
+$("openQuiz").onclick=openQuiz;
+$("qHome").onclick=()=>show("start");
+
+function confetti(){const cv=$("confetti"),ctx=cv.getContext("2d");cv.width=innerWidth;cv.height=innerHeight;
+  const cols=["#FFC247","#E76F51","#FFFBF4","#2E8B57","#9C8ADE"];
+  const P=Array.from({length:140},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,w:6+Math.random()*6,h:10+Math.random()*8,vy:2+Math.random()*3,vx:-1.5+Math.random()*3,r:Math.random()*6,vr:-.2+Math.random()*.4,c:cols[Math.random()*5|0]}));
+  const t0=performance.now();(function f(t){ctx.clearRect(0,0,cv.width,cv.height);
+    P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore()});
+    if(t-t0<3500)requestAnimationFrame(f);else ctx.clearRect(0,0,cv.width,cv.height)})(t0)}
+</script>
+</body>
+</html>
